@@ -1,0 +1,2 @@
+{'model': 'vgg11_bn', 'dataset': 'cifar100', 'epochs': 300}
+Using device: cuda:0

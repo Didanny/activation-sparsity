@@ -169,3 +169,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Tensorboard
+runs/*
+data/cifar-100*
+launch.json
