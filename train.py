@@ -72,9 +72,8 @@ def train(model: nn.Module, criterion: nn.Module, optimizer: nn.Module, schedule
         # Backprop
         loss.backward()
         
-        # Update params and learning rate
+        # Update params
         optimizer.step()
-        scheduler.step()
         
         # Update the metrics
         if meters is not None:
@@ -83,6 +82,9 @@ def train(model: nn.Module, criterion: nn.Module, optimizer: nn.Module, schedule
                 meters[f'top{k}_accuracy'].update(outputs, labels)
             # Update running loss    
             meters['loss'].update(loss)
+    
+    # Update learning rate
+    scheduler.step()
             
 @torch.no_grad()    
 def evaluate(model: nn.Module, criterion: nn.Module, val_loader: DataLoader, device: torch.device, epoch: int, meters: dict):
@@ -125,7 +127,7 @@ def main(opt: argparse.Namespace):
     train_loader, val_loader = getattr(data, opt.dataset)()
     
     # Model
-    model = getattr(models, opt.model)(num_classes = data.num_classes[opt.dataset])
+    model = getattr(models, opt.model)(pretrained = False, num_classes = data.num_classes[opt.dataset])
     model.to(device = device)
     
     # Initialize criterion

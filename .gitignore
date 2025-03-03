@@ -174,3 +174,4 @@ cython_debug/
 runs/*
 data/cifar-100*
 launch.json
+slurm_logs/*
