@@ -22,6 +22,7 @@ def parse_opt() -> argparse.Namespace:
     parser.add_argument('--model', type=str, default='resnet18')
     parser.add_argument('--dataset', type=str, default='cifar100')
     parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--pretrained', action='store_true')
     opt = parser.parse_args()
     print(vars(opt))
     return opt
