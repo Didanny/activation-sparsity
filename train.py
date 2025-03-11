@@ -19,7 +19,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 def parse_opt() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='resnet18')
+    parser.add_argument('--model', type=str, default='cifar100_resnet20')
     parser.add_argument('--dataset', type=str, default='cifar100')
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--pretrained', action='store_true')
@@ -128,7 +128,7 @@ def main(opt: argparse.Namespace):
     train_loader, val_loader = getattr(data, opt.dataset)()
     
     # Model
-    model = getattr(models, opt.model)(pretrained = False, num_classes = data.num_classes[opt.dataset])
+    model = getattr(models, opt.model)(pretrained = opt.pretrained, num_classes = data.num_classes[opt.dataset])
     model.to(device = device)
     
     # Initialize criterion
@@ -149,31 +149,32 @@ def main(opt: argparse.Namespace):
     last, best = w / 'last.pt', w / 'best.pt'
     
     # Begin training
-    for epoch in range(opt.epochs):
-        # Train
-        train(model, criterion, optimizer, lr_scheduler, train_loader, device, epoch, train_meters)
-        log_meters(writer, train_meters, 'train', epoch)
-        
-        # Eval
-        if (epoch + 1) % 5 == 0:
-            evaluate(model, criterion, val_loader, device, epoch, val_meters)
-        
-            # Get fitness
-            fitness = val_meters['top1_accuracy'].compute()
-            top5_accuracy, top1_accuracy = val_meters['top5_accuracy'].compute(), val_meters['top1_accuracy'].compute() 
-
-            # Update best model
-            if best_fitness < fitness:
-                best_dict = {'params': model.state_dict(), 'top5_accuracy': top5_accuracy, 'top1_accuracy': top1_accuracy, 'epoch': epoch}
-                best_fitness = fitness
-                torch.save(best_dict, best)
-                
-            # Log val meters
-            log_meters(writer, val_meters, 'val', epoch) 
+    if not opt.pretrained:
+        for epoch in range(opt.epochs):
+            # Train
+            train(model, criterion, optimizer, lr_scheduler, train_loader, device, epoch, train_meters)
+            log_meters(writer, train_meters, 'train', epoch)
             
-    # Update last model
-    last_dict = {'params': model.state_dict(), 'top5_accuracy': top5_accuracy, 'top1_accuracy': top1_accuracy, 'epoch': epoch}
-    torch.save(last_dict, last)
+            # Eval
+            if (epoch + 1) % 5 == 0:
+                evaluate(model, criterion, val_loader, device, epoch, val_meters)
+            
+                # Get fitness
+                fitness = val_meters['top1_accuracy'].compute()
+                top5_accuracy, top1_accuracy = val_meters['top5_accuracy'].compute(), val_meters['top1_accuracy'].compute() 
+
+                # Update best model
+                if best_fitness < fitness:
+                    best_dict = {'params': model.state_dict(), 'top5_accuracy': top5_accuracy, 'top1_accuracy': top1_accuracy, 'epoch': epoch}
+                    best_fitness = fitness
+                    torch.save(best_dict, best)
+                    
+                # Log val meters
+                log_meters(writer, val_meters, 'val', epoch) 
+                
+        # Update last model
+        last_dict = {'params': model.state_dict(), 'top5_accuracy': top5_accuracy, 'top1_accuracy': top1_accuracy, 'epoch': epoch}
+        torch.save(last_dict, last)
 
 
 if __name__ == '__main__':

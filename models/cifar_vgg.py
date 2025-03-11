@@ -50,10 +50,10 @@ cifar10_pretrained_weight_urls = {
 }
 
 cifar100_pretrained_weight_urls = {
-    'vgg11_bn': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/vgg/cifar100_vgg11_bn-57d0759e.pt',
-    'vgg13_bn': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/vgg/cifar100_vgg13_bn-5ebe5778.pt',
-    'vgg16_bn': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/vgg/cifar100_vgg16_bn-7d8c4031.pt',
-    'vgg19_bn': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/vgg/cifar100_vgg19_bn-b98f7bd7.pt',
+    'vgg11_bn': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/vgg11_cifar100.pt',
+    'vgg13_bn': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/vgg13_cifar100.pt',
+    'vgg16_bn': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/vgg16_cifar100.pt',
+    'vgg19_bn': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/vgg19_cifar100.pt',
 }
 
 
@@ -131,9 +131,10 @@ def _vgg(arch: str, cfg: str, batch_norm: bool,
         kwargs['init_weights'] = False
     model = VGG(make_layers(cfgs[cfg], batch_norm=batch_norm), **kwargs)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress)
-        model.load_state_dict(state_dict)
+        checkpoint = load_state_dict_from_url(model_urls[arch],
+                                              progress=progress,
+                                              map_location='cpu')
+        model.load_state_dict(checkpoint['params'])
     return model
 
 

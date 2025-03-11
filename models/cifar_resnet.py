@@ -50,10 +50,10 @@ cifar10_pretrained_weight_urls = {
 }
 
 cifar100_pretrained_weight_urls = {
-    'resnet20': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/resnet/cifar100_resnet20-23dac2f1.pt',
-    'resnet32': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/resnet/cifar100_resnet32-84213ce6.pt',
-    'resnet44': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/resnet/cifar100_resnet44-ffe32858.pt',
-    'resnet56': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/resnet/cifar100_resnet56-f2eff4c8.pt',
+    'resnet20': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/resnet20_cifar100.pt',
+    'resnet32': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/resnet32_cifar100.pt',
+    'resnet44': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/resnet44_cifar100.pt',
+    'resnet56': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/resnet56_cifar100.pt',
 }
 
 
@@ -164,9 +164,10 @@ def _resnet(
 ) -> CifarResNet:
     model = CifarResNet(BasicBlock, layers, **kwargs)
     if pretrained:
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress)
-        model.load_state_dict(state_dict)
+        checkpoint = load_state_dict_from_url(model_urls[arch],
+                                              progress=progress,
+                                              map_location='cpu')
+        model.load_state_dict(checkpoint['params'])
     return model
 
 
