@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchmetrics.classification import Accuracy
 from torchmetrics.aggregation import MeanMetric
 
-from utils import get_device
+from utils import ActivationSparsity, get_device
 import models
 import data
 
@@ -175,6 +175,19 @@ def main(opt: argparse.Namespace):
         # Update last model
         last_dict = {'params': model.state_dict(), 'top5_accuracy': top5_accuracy, 'top1_accuracy': top1_accuracy, 'epoch': epoch}
         torch.save(last_dict, last)
+        
+    # Measure initial sparsity on validation set
+    natural_sparsity = ActivationSparsity()
+    
+    hooks = []
+    for name, mod in model.named_modules():
+        hooks.append(mod.register_forward_hook(natural_sparsity.calculate_sparsity(name)))
+        
+    # Run on validation set
+    evaluate(model, criterion, val_loader, device, 0, val_meters)
+    
+    # Induce activation sparsity with Hoyer Regularizer
+    induced_sparsity = ActivationSparsity()
 
 
 if __name__ == '__main__':
