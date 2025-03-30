@@ -172,6 +172,7 @@ cython_debug/
 
 # Tensorboard
 runs/*
+fine_tune_runs/*
 data/cifar-100*
 launch.json
 slurm_logs/*

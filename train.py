@@ -6,12 +6,12 @@ import torch
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 
 from torchmetrics.classification import Accuracy
 from torchmetrics.aggregation import MeanMetric
 
-from utils import ActivationSparsity, get_device
+from utils import ActivationSparsity, ActivationHoyerNorm, get_device
 import models
 import data
 
@@ -22,7 +22,10 @@ def parse_opt() -> argparse.Namespace:
     parser.add_argument('--model', type=str, default='cifar100_resnet20')
     parser.add_argument('--dataset', type=str, default='cifar100')
     parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--finetune-epochs', type=int, default=30)
     parser.add_argument('--pretrained', action='store_true')
+    parser.add_argument('--fine-tune', action='store_true')
+    parser.add_argument('--alpha', type=float, default=10e-7)
     opt = parser.parse_args()
     print(vars(opt))
     return opt
@@ -50,6 +53,11 @@ def log_meters(writer: SummaryWriter, meters: dict, prefix: str, step: int):
     # Reset meters
     for m in meters.values():
         m.reset()
+        
+def log_sparsity(writer: SummaryWriter, sparsities: dict, prefix: str, step: int):
+    # Log sparsity values to Tensorboard
+    for key, val in sparsities.items():
+        writer.add_scalar(f'{prefix}/{key}', val, step)
 
 def train(model: nn.Module, criterion: nn.Module, optimizer: nn.Module, scheduler: object, train_loader: DataLoader, 
           device: torch.device, epoch: int, meters: dict) -> None:
@@ -85,7 +93,8 @@ def train(model: nn.Module, criterion: nn.Module, optimizer: nn.Module, schedule
             meters['loss'].update(loss)
     
     # Update learning rate
-    scheduler.step()
+    if scheduler:
+        scheduler.step()
             
 @torch.no_grad()    
 def evaluate(model: nn.Module, criterion: nn.Module, val_loader: DataLoader, device: torch.device, epoch: int, meters: dict):
@@ -117,7 +126,12 @@ def main(opt: argparse.Namespace):
     
     # Set up tensorboard summary writer
     # TODO: Create more comprehensive automated commenting
-    writer = SummaryWriter(comment=f'_{opt.model}_{opt.dataset}')
+    if not opt.fine_tune:
+        writer = SummaryWriter(comment=f'_{opt.model}_{opt.dataset}')
+    else:
+        writer = SummaryWriter()
+        log_dir = writer.log_dir.replace('runs', 'fine_tune_runs', 1)
+        writer = SummaryWriter(log_dir=f'{log_dir}_{opt.model}_{opt.dataset}_{opt.alpha}')
     save_dir = Path(writer.log_dir)
     
     # Directories
@@ -178,6 +192,7 @@ def main(opt: argparse.Namespace):
         
     # Measure initial sparsity on validation set
     natural_sparsity = ActivationSparsity()
+    sparsity_vals = {}
     
     hooks = []
     for name, mod in model.named_modules():
@@ -185,10 +200,76 @@ def main(opt: argparse.Namespace):
         
     # Run on validation set
     evaluate(model, criterion, val_loader, device, 0, val_meters)
+    sparsity_vals['natural'] = natural_sparsity.compute_average()
+    
+    for hook in hooks:
+        hook.remove()
     
     # Induce activation sparsity with Hoyer Regularizer
     induced_sparsity = ActivationSparsity()
+    hoyer_norm = ActivationHoyerNorm()
 
+    hoyer_hooks = []
+    for name, mod in model.named_modules():
+        if name.endswith('relu'):
+            hoyer_hooks.append(mod.register_forward_hook(hoyer_norm.norm()))
+            
+    # Measure induced activation sparsity
+    induced_sparsity_hooks = []
+    for name, mod in model.named_modules():
+        induced_sparsity_hooks.append(mod.register_forward_hook(induced_sparsity.calculate_sparsity(name)))
+            
+    # Initialize criterion
+    loss = nn.CrossEntropyLoss()
+    def criterion(outputs: torch.Tensor, labels: torch.Tensor):
+        result = loss(outputs, labels) + (opt.alpha * hoyer_norm.compute())
+        hoyer_norm.reset()
+        return result
+    
+    # Initialize optimizer
+    optimizer = optim.SGD([v for n, v in model.named_parameters()], 0.0025, 0.9, 0, 5e-4, True)
+    
+    # Initialize scheduler
+    # lr_scheduler = None
+    lr_scheduler = CosineAnnealingLR(optimizer, T_max=opt.finetune_epochs, eta_min=0)
+    lr_scheduler = StepLR(optimizer, )
+    
+    # Get the performance metrics
+    train_meters = get_meters(device, 'train', data.num_classes[opt.dataset])
+    val_meters = get_meters(device, 'val', data.num_classes[opt.dataset]) 
+    
+    # Initialize best and last model metrics
+    best_dict, last_dict, best_fitness = None, None, 0.0
+    last, best = w / 'last.pt', w / 'best.pt'
+    
+    # Begin fine-tuning with Hoyer activation regularizer
+    if opt.fine_tune:
+        for epoch in range(opt.finetune_epochs):
+            # Train
+            train(model, criterion, optimizer, lr_scheduler, train_loader, device, epoch, train_meters)
+            
+            # Compute induced sparsity
+            sparsity_vals['induced_sparsity'] = induced_sparsity.compute_average()
+            induced_sparsity.reset()
+            
+            # Log to Tensorboard
+            log_meters(writer, train_meters, 'train', epoch)
+            log_sparsity(writer, sparsity_vals, 'train', epoch)
+            
+            # Eval
+            evaluate(model, criterion, val_loader, device, epoch, val_meters)
+            
+            # Compute induced sparsity
+            sparsity_vals['induced_sparsity'] = induced_sparsity.compute_average()
+            induced_sparsity.reset()
+            
+            # Log to Tensorboard
+            log_meters(writer, val_meters, 'val', epoch)
+            log_sparsity(writer, sparsity_vals, 'val', epoch)
+        
+    for hook in hooks:
+        hook.remove()
+    
 
 if __name__ == '__main__':
     opt = parse_opt()

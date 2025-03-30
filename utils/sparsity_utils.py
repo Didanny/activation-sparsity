@@ -31,3 +31,31 @@ class ActivationSparsity:
     def compile(self):
         return {key: val.compute().item() for key, val in self.sparsity.items()}
     
+    def compute_average(self):
+        return torch.mean(torch.tensor([val for key, val in self.compile().items() if key.endswith('relu')])).item()
+    
+
+class ActivationHoyerNorm(nn.Module):
+    def __init__(self):
+        self.running_norm = None
+    
+    def norm(self):
+        
+        def hook(module: nn.Module, input: torch.Tensor, output: torch.Tensor):
+            square_hoyer = (output.norm(p=1, dim=(1, 2, 3)) / output.norm(p=2, dim=(1, 2, 3))) ** 2
+            self._accumulate(square_hoyer.mean())
+        
+        return hook
+    
+    def _accumulate(self, norm: torch.Tensor):
+        if self.running_norm:
+            self.running_norm += norm.mean()
+        else:
+            self.running_norm = torch.zeros_like(norm)
+            self.running_norm += norm.mean()
+    
+    def reset(self):
+        self.running_norm = None   
+        
+    def compute(self):
+        return self.running_norm
