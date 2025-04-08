@@ -42,7 +42,12 @@ class ActivationHoyerNorm(nn.Module):
     def norm(self):
         
         def hook(module: nn.Module, input: torch.Tensor, output: torch.Tensor):
-            square_hoyer = (output.norm(p=1, dim=(1, 2, 3)) / output.norm(p=2, dim=(1, 2, 3))) ** 2
+            if len(output.shape) == 4:
+                square_hoyer = (output.norm(p=1, dim=(1, 2, 3)) / output.norm(p=2, dim=(1, 2, 3))) ** 2
+            elif len(output.shape) == 2:
+                square_hoyer = (output.norm(p=1, dim=(1)) / output.norm(p=2, dim=(1))) ** 2
+            else:
+                raise ValueError
             self._accumulate(square_hoyer.mean())
         
         return hook
@@ -59,3 +64,47 @@ class ActivationHoyerNorm(nn.Module):
         
     def compute(self):
         return self.running_norm
+
+class HooksManager():
+    def __init__(self, model: nn.Module, model_name: str):
+        self.hooks = []
+        # self.monitors = {}
+        self.model = model
+        self.model_name = model_name
+        
+    # def register_hooks(self, mode: str):
+    #     assert mode == 'sparsity' or mode == 'hoyer'
+            
+    #     if mode == 'sparsity':
+    #         self._register_sparsity_hooks()
+        
+    # def _register_sparsity_hooks(self, ):
+    #     pass
+        
+    def register_hooks(self, hook_generator: callable, layers: str = 'all'):
+        assert layers == 'all' or layers == 'post-relu'
+        
+        hooks = []
+        if layers == 'all':
+            for name, mod in self.model.named_modules():
+                hooks.append(mod.register_forward_hook(hook_generator(name)))
+                
+        elif layers == 'post-relu':
+            
+            if 'resnet' in self.model_name:
+                for name, mod in self.model.named_modules():
+                    if name.endswith('relu'):
+                        hooks.append(mod.register_forward_hook(hook_generator()))
+                        
+            if 'vgg' in self.model_name:
+                for name, mod in self.model.named_modules():
+                    if isinstance(mod, nn.ReLU):
+                        hooks.append(mod.register_forward_hook(hook_generator()))
+                        
+        self.hooks.append(hooks)
+                        
+    def remove_hooks(self):
+        for hooks in self.hooks:
+            for hook in hooks:
+                hook.remove()
+                        

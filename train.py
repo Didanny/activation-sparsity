@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics.classification import Accuracy
 from torchmetrics.aggregation import MeanMetric
 
-from utils import ActivationSparsity, ActivationHoyerNorm, get_device
+from utils import ActivationSparsity, ActivationHoyerNorm, HooksManager, get_device
 import models
 import data
 
@@ -190,34 +190,27 @@ def main(opt: argparse.Namespace):
         last_dict = {'params': model.state_dict(), 'top5_accuracy': top5_accuracy, 'top1_accuracy': top1_accuracy, 'epoch': epoch}
         torch.save(last_dict, last)
         
+    # Initialise hooks manager
+    hook_manager = HooksManager(model, opt.model)
+    
     # Measure initial sparsity on validation set
     natural_sparsity = ActivationSparsity()
     sparsity_vals = {}
     
-    hooks = []
-    for name, mod in model.named_modules():
-        hooks.append(mod.register_forward_hook(natural_sparsity.calculate_sparsity(name)))
+    hook_manager.register_hooks(natural_sparsity.calculate_sparsity)
         
     # Run on validation set
     evaluate(model, criterion, val_loader, device, 0, val_meters)
     sparsity_vals['natural'] = natural_sparsity.compute_average()
     
-    for hook in hooks:
-        hook.remove()
+    hook_manager.remove_hooks()
     
     # Induce activation sparsity with Hoyer Regularizer
     induced_sparsity = ActivationSparsity()
     hoyer_norm = ActivationHoyerNorm()
 
-    hoyer_hooks = []
-    for name, mod in model.named_modules():
-        if name.endswith('relu'):
-            hoyer_hooks.append(mod.register_forward_hook(hoyer_norm.norm()))
-            
-    # Measure induced activation sparsity
-    induced_sparsity_hooks = []
-    for name, mod in model.named_modules():
-        induced_sparsity_hooks.append(mod.register_forward_hook(induced_sparsity.calculate_sparsity(name)))
+    hook_manager.register_hooks(hoyer_norm.norm, layers='post-relu')
+    hook_manager.register_hooks(induced_sparsity.calculate_sparsity)
             
     # Initialize criterion
     loss = nn.CrossEntropyLoss()
@@ -227,12 +220,11 @@ def main(opt: argparse.Namespace):
         return result
     
     # Initialize optimizer
-    optimizer = optim.SGD([v for n, v in model.named_parameters()], 0.0025, 0.9, 0, 5e-4, True)
+    optimizer = optim.SGD([v for n, v in model.named_parameters()], 0.005, 0.9, 0, 5e-4, True)
     
     # Initialize scheduler
     # lr_scheduler = None
     lr_scheduler = CosineAnnealingLR(optimizer, T_max=opt.finetune_epochs, eta_min=0)
-    lr_scheduler = StepLR(optimizer, )
     
     # Get the performance metrics
     train_meters = get_meters(device, 'train', data.num_classes[opt.dataset])
@@ -267,8 +259,7 @@ def main(opt: argparse.Namespace):
             log_meters(writer, val_meters, 'val', epoch)
             log_sparsity(writer, sparsity_vals, 'val', epoch)
         
-    for hook in hooks:
-        hook.remove()
+    hook_manager.remove_hooks()
     
 
 if __name__ == '__main__':

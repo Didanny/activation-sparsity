@@ -7,15 +7,15 @@
 #SBATCH -o slurm_logs/log_cifar100_vgg.out
 #SBATCH -e slurm_logs/err_cifar100_vgg.out
 
-for alpha in 1e-7 5e-7 1e-6 5e-6 1e-5 5e-5 1e-4 5e-4 1e-3 5e-3 1e-2 5e-2 1e-1 5e-1; do
+for alpha in 1e-7 5e-7 1e-6 5e-6 1e-5 5e-5 1e-4 5e-4; do
     python train.py --model cifar100_vgg11_bn --dataset cifar100 --pretrained --fine-tune --alpha "$alpha"
 done
-for alpha in 1e-7 5e-7 1e-6 5e-6 1e-5 5e-5 1e-4 5e-4 1e-3 5e-3 1e-2 5e-2 1e-1 5e-1; do
+for alpha in 1e-7 5e-7 1e-6 5e-6 1e-5 5e-5 1e-4 5e-4; do
     python train.py --model cifar100_vgg13_bn --dataset cifar100 --pretrained --fine-tune --alpha "$alpha"
 done
-for alpha in 1e-7 5e-7 1e-6 5e-6 1e-5 5e-5 1e-4 5e-4 1e-3 5e-3 1e-2 5e-2 1e-1 5e-1; do
+for alpha in 1e-7 5e-7 1e-6 5e-6 1e-5 5e-5 1e-4 5e-4; do
     python train.py --model cifar100_vgg16_bn --dataset cifar100 --pretrained --fine-tune --alpha "$alpha"
 done
-for alpha in 1e-7 5e-7 1e-6 5e-6 1e-5 5e-5 1e-4 5e-4 1e-3 5e-3 1e-2 5e-2 1e-1 5e-1; do
+for alpha in 1e-7 5e-7 1e-6 5e-6 1e-5 5e-5 1e-4 5e-4; do
     python train.py --model cifar100_vgg19_bn --dataset cifar100 --pretrained --fine-tune --alpha "$alpha"
 done
