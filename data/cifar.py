@@ -8,7 +8,7 @@ import torch.utils.data as data
 import torchvision.transforms as T
 from torchvision.datasets import CIFAR10, CIFAR100
 
-DATA_DIR = Path('./data')
+DATA_DIR = Path('../datasets/')
 
 def get_train_transforms(mean: Sequence[float], std: list[float]):
     return T.Compose([
