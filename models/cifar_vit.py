@@ -1,12 +1,20 @@
+import sys
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+try:
+    from torch.hub import load_state_dict_from_url
+except ImportError:
+    from torch.utils.model_zoo import load_url as load_state_dict_from_url
+from functools import partial
+from typing import Union, List, Dict, Any, cast
 
 cifar10_pretrained_weight_urls = {
     'vit': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/resnet/cifar10_resnet20-4118986f.pt',
 }
 
 cifar100_pretrained_weight_urls = {
-    'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/resnet-vgg/resnet20_cifar100.pt',
+    'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/vit_cifar100.pt',
 }
 
 class TransformerEncoder(nn.Module):
@@ -100,12 +108,29 @@ class ViT(nn.Module):
         return out
     
 def _vit(
+    arch: str,
     model_urls: Dict[str, str],
     progress: bool = True,
     pretrained: bool = False,
     **kwargs: Any
 ) -> ViT:
-    
+    model = ViT(
+        in_c=3,
+        img_size=32,
+        patch=8,
+        dropout=0.0,
+        num_layers=7,
+        hidden=384,
+        mlp_hidden=384,
+        head=12,
+        **kwargs,
+    )
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls[arch],
+                                              progress=progress,
+                                              map_location='cpu')
+        model.load_state_dict(checkpoint['params'])
+    return model
 
     
 def cifar10_vit(*args, **kwargs) -> ViT: pass
@@ -113,17 +138,15 @@ def cifar100_vit(*args, **kwargs) -> ViT: pass
 
 thismodule = sys.modules[__name__]
 for dataset in ["cifar10", "cifar100"]:
-    for layers, model_name in zip([[3]*3, [5]*3, [7]*3, [9]*3],
-                                  ["resnet20", "resnet32", "resnet44", "resnet56"]):
-        method_name = f"{dataset}_{model_name}"
-        model_urls = cifar10_pretrained_weight_urls if dataset == "cifar10" else cifar100_pretrained_weight_urls
-        num_classes = 10 if dataset == "cifar10" else 100
-        setattr(
-            thismodule,
-            method_name,
-            partial(_resnet,
-                    arch=model_name,
-                    layers=layers,
-                    model_urls=model_urls,
-                    num_classes=num_classes)
-        )
+    model_name = 'vit'
+    method_name = f"{dataset}_{model_name}"
+    model_urls = cifar10_pretrained_weight_urls if dataset == "cifar10" else cifar100_pretrained_weight_urls
+    num_classes = 10 if dataset == "cifar10" else 100
+    setattr(
+        thismodule,
+        method_name,
+        partial(_vit,
+                arch=model_name,
+                model_urls=model_urls,
+                num_classes=num_classes)
+    )

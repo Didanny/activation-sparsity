@@ -22,6 +22,9 @@ def parse_opt() -> argparse.Namespace:
     parser.add_argument('--model', type=str, default='cifar100_resnet20')
     parser.add_argument('--dataset', type=str, default='cifar100')
     parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--initial-lr', type=float, default=0.1)
+    parser.add_argument('--final-lr', type=float, default=0.0)
+    parser.add_argument('--label-smoothing', type=float, default=0.0)
     parser.add_argument('--finetune-epochs', type=int, default=30)
     parser.add_argument('--pretrained', action='store_true')
     parser.add_argument('--fine-tune', action='store_true')
@@ -146,13 +149,13 @@ def main(opt: argparse.Namespace):
     model.to(device = device)
     
     # Initialize criterion
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(label_smoothing=opt.label_smoothing)
     
     # Initialize optimizer
-    optimizer = optim.SGD([v for n, v in model.named_parameters()], 0.1, 0.9, 0, 5e-4, True)
+    optimizer = optim.SGD([v for n, v in model.named_parameters()], opt.initial_lr, 0.9, 0, 5e-4, True)
     
     # Initialize scheduler
-    lr_scheduler = CosineAnnealingLR(optimizer, T_max=300, eta_min=0)
+    lr_scheduler = CosineAnnealingLR(optimizer, T_max=300, eta_min=opt.final_lr)
     
     # Get the performance metrics
     train_meters = get_meters(device, 'train', data.num_classes[opt.dataset])

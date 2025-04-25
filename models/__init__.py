@@ -20,3 +20,7 @@ from .cifar_vgg import cifar100_vgg11_bn
 from .cifar_vgg import cifar100_vgg13_bn
 from .cifar_vgg import cifar100_vgg16_bn
 from .cifar_vgg import cifar100_vgg19_bn
+
+from .cifar_vit import cifar10_vit
+
+from .cifar_vit import cifar100_vit
