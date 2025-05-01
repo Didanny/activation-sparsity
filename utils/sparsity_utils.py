@@ -33,7 +33,6 @@ class ActivationSparsity:
     
     def compute_average(self):
         return torch.mean(torch.tensor([val for key, val in self.compile().items() if key.endswith('relu')])).item()
-    
 
 class ActivationHoyerNorm(nn.Module):
     def __init__(self):
@@ -42,10 +41,12 @@ class ActivationHoyerNorm(nn.Module):
     def norm(self):
         
         def hook(module: nn.Module, input: torch.Tensor, output: torch.Tensor):
-            if len(output.shape) == 4:
+            if len(output.shape) == 4: # Conv2D
                 square_hoyer = (output.norm(p=1, dim=(1, 2, 3)) / output.norm(p=2, dim=(1, 2, 3))) ** 2
-            elif len(output.shape) == 2:
+            elif len(output.shape) == 2: # Linear
                 square_hoyer = (output.norm(p=1, dim=(1)) / output.norm(p=2, dim=(1))) ** 2
+            elif len(output.shape) == 3: # MLP after Attention
+                square_hoyer = (output.norm(p=1, dim=(1, 2)) / output.norm(p=2, dim=(1, 2))) ** 2
             else:
                 raise ValueError
             self._accumulate(square_hoyer.mean())
@@ -65,6 +66,7 @@ class ActivationHoyerNorm(nn.Module):
     def compute(self):
         return self.running_norm
 
+
 class HooksManager():
     def __init__(self, model: nn.Module, model_name: str):
         self.hooks = []
@@ -82,14 +84,15 @@ class HooksManager():
     #     pass
         
     def register_hooks(self, hook_generator: callable, layers: str = 'all'):
-        assert layers == 'all' or layers == 'post-relu'
+        assert layers == 'all' or layers == 'post-act'
         
         hooks = []
         if layers == 'all':
             for name, mod in self.model.named_modules():
+                name = self._standardize_name(name, mod)
                 hooks.append(mod.register_forward_hook(hook_generator(name)))
                 
-        elif layers == 'post-relu':
+        elif layers == 'post-act':
             
             if 'resnet' in self.model_name:
                 for name, mod in self.model.named_modules():
@@ -101,10 +104,23 @@ class HooksManager():
                     if isinstance(mod, nn.ReLU):
                         hooks.append(mod.register_forward_hook(hook_generator()))
                         
+            if 'vit' in self.model_name:
+                for name, mod in self.model.named_modules():
+                    if isinstance(mod, nn.ReLU):
+                        hooks.append(mod.register_forward_hook(hook_generator()))
+                        
         self.hooks.append(hooks)
                         
     def remove_hooks(self):
         for hooks in self.hooks:
             for hook in hooks:
                 hook.remove()
+                
+    def _standardize_name(self, name: str, mod: nn.Module):
+        if isinstance(mod, nn.ReLU) and not name.endswith('relu'):
+            return f'{name}_relu'
+        elif isinstance(mod, nn.GELU) and not name.endswith('gelu'):
+            return f'{name}_gelu'
+        else:
+            return name
                         

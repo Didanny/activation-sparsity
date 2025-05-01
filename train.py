@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics.classification import Accuracy
 from torchmetrics.aggregation import MeanMetric
 
-from utils import ActivationSparsity, ActivationHoyerNorm, HooksManager, get_device
+from utils import ActivationSparsity, ActivationHoyerNorm, HooksManager, get_device, replace_gelu_with_relu
 import models
 import data
 
@@ -28,6 +28,7 @@ def parse_opt() -> argparse.Namespace:
     parser.add_argument('--finetune-epochs', type=int, default=30)
     parser.add_argument('--pretrained', action='store_true')
     parser.add_argument('--fine-tune', action='store_true')
+    parser.add_argument('--sparse-lr', type=float, default=0.005)
     parser.add_argument('--alpha', type=float, default=10e-7)
     opt = parser.parse_args()
     print(vars(opt))
@@ -192,6 +193,9 @@ def main(opt: argparse.Namespace):
         # Update last model
         last_dict = {'params': model.state_dict(), 'top5_accuracy': top5_accuracy, 'top1_accuracy': top1_accuracy, 'epoch': epoch}
         torch.save(last_dict, last)
+     
+    # Replace GELU activations with ReLU if present, to promote sparsity
+    replace_gelu_with_relu(model)
         
     # Initialise hooks manager
     hook_manager = HooksManager(model, opt.model)
@@ -212,7 +216,7 @@ def main(opt: argparse.Namespace):
     induced_sparsity = ActivationSparsity()
     hoyer_norm = ActivationHoyerNorm()
 
-    hook_manager.register_hooks(hoyer_norm.norm, layers='post-relu')
+    hook_manager.register_hooks(hoyer_norm.norm, layers='post-act')
     hook_manager.register_hooks(induced_sparsity.calculate_sparsity)
             
     # Initialize criterion
@@ -223,7 +227,7 @@ def main(opt: argparse.Namespace):
         return result
     
     # Initialize optimizer
-    optimizer = optim.SGD([v for n, v in model.named_parameters()], 0.005, 0.9, 0, 5e-4, True)
+    optimizer = optim.SGD([v for n, v in model.named_parameters()], opt.sparse_lr, 0.9, 0, 5e-4, True)
     
     # Initialize scheduler
     # lr_scheduler = None

@@ -1,2 +1,2 @@
-from .utils import get_device
+from .utils import get_device, replace_gelu_with_relu
 from .sparsity_utils import ActivationHoyerNorm, ActivationSparsity, HooksManager

@@ -10,3 +10,11 @@ def get_device():
     print(f'Using device: {device}')
     
     return device
+
+def replace_gelu_with_relu(module):
+    for name, child in module.named_children():
+        if isinstance(child, nn.GELU):
+            setattr(module, name, nn.ReLU())
+        else:
+            replace_gelu_with_relu(child)
+            
