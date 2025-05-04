@@ -34,6 +34,7 @@ class ActivationSparsity:
     def compute_average(self):
         return torch.mean(torch.tensor([val for key, val in self.compile().items() if key.endswith('relu')])).item()
 
+
 class ActivationHoyerNorm(nn.Module):
     def __init__(self):
         self.running_norm = None
@@ -42,14 +43,62 @@ class ActivationHoyerNorm(nn.Module):
         
         def hook(module: nn.Module, input: torch.Tensor, output: torch.Tensor):
             if len(output.shape) == 4: # Conv2D
-                square_hoyer = (output.norm(p=1, dim=(1, 2, 3)) / output.norm(p=2, dim=(1, 2, 3))) ** 2
+                l1 = output.norm(p=1, dim=(1, 2, 3))
+                l2 = output.norm(p=2, dim=(1, 2, 3))
             elif len(output.shape) == 2: # Linear
-                square_hoyer = (output.norm(p=1, dim=(1)) / output.norm(p=2, dim=(1))) ** 2
+                l1 = output.norm(p=1, dim=1)
+                l2 = output.norm(p=2, dim=1)
             elif len(output.shape) == 3: # MLP after Attention
-                square_hoyer = (output.norm(p=1, dim=(1, 2)) / output.norm(p=2, dim=(1, 2))) ** 2
+                l1 = output.norm(p=1, dim=(1, 2))
+                l2 = output.norm(p=2, dim=(1, 2))
             else:
                 raise ValueError
+            
+            square_hoyer = (l1 / (l2 + 1e-6)) ** 2
             self._accumulate(square_hoyer.mean())
+        
+        return hook
+    
+    def _accumulate(self, norm: torch.Tensor):
+        if self.running_norm:
+            self.running_norm += norm.mean()
+        else:
+            self.running_norm = torch.zeros_like(norm)
+            self.running_norm += norm.mean()
+    
+    def reset(self):
+        self.running_norm = None   
+        
+    def compute(self):
+        return self.running_norm
+    
+
+class BlockHoyerNorm(nn.Module):
+    def __init__(self):
+        self.running_norm = None
+    
+    def norm(self):
+        
+        def hook(module: nn.Module, input: torch.Tensor, output: torch.Tensor):
+            if len(output.shape) == 4: # Conv2D
+                raise NotImplementedError
+            elif len(output.shape) == 2: # Linear
+                raise NotImplementedError
+            elif len(output.shape) == 3: # MLP after Attention
+                batch_size, seq_len, hidden_dim = output.shape
+                output_flat = output.view(batch_size, -1)  # Flatten to (batch_size, seq_len * hidden_dim)
+
+                assert output_flat.size(1) % 4 == 0, "Dimension must be divisible by 4 for 2:4 sparsity."
+
+                output_blocks = output_flat.view(batch_size, -1, 4)  # (batch_size, num_blocks, 4)
+
+                l1_norm_blocks = output_blocks.norm(p=1, dim=2)
+                l2_norm_blocks = output_blocks.norm(p=2, dim=2)
+
+                block_hoyer = (l1_norm_blocks / (l2_norm_blocks + 1e-6)) ** 2  # Add epsilon for stability
+            else:
+                raise ValueError
+            self._accumulate(block_hoyer.mean())
         
         return hook
     

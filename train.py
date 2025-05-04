@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from torchmetrics.classification import Accuracy
 from torchmetrics.aggregation import MeanMetric
 
-from utils import ActivationSparsity, ActivationHoyerNorm, HooksManager, get_device, replace_gelu_with_relu
+from utils import ActivationSparsity, ActivationHoyerNorm, BlockHoyerNorm, HooksManager, get_device, replace_gelu_with_relu
 import models
 import data
 
@@ -28,6 +28,7 @@ def parse_opt() -> argparse.Namespace:
     parser.add_argument('--finetune-epochs', type=int, default=30)
     parser.add_argument('--pretrained', action='store_true')
     parser.add_argument('--fine-tune', action='store_true')
+    parser.add_argument('--sparsity-type', type=str, default='unstructured')
     parser.add_argument('--sparse-lr', type=float, default=0.005)
     parser.add_argument('--alpha', type=float, default=10e-7)
     opt = parser.parse_args()
@@ -214,7 +215,11 @@ def main(opt: argparse.Namespace):
     
     # Induce activation sparsity with Hoyer Regularizer
     induced_sparsity = ActivationSparsity()
-    hoyer_norm = ActivationHoyerNorm()
+    
+    if opt.sparsity_type == 'unstructured':
+        hoyer_norm = ActivationHoyerNorm()
+    elif opt.sparsity_type == 'semi-structured':
+        hoyer_norm = BlockHoyerNorm()
 
     hook_manager.register_hooks(hoyer_norm.norm, layers='post-act')
     hook_manager.register_hooks(induced_sparsity.calculate_sparsity)
@@ -258,6 +263,9 @@ def main(opt: argparse.Namespace):
             # Eval
             evaluate(model, criterion, val_loader, device, epoch, val_meters)
             
+            # Get accuracies
+            top5_accuracy, top1_accuracy = val_meters['top5_accuracy'].compute(), val_meters['top1_accuracy'].compute()
+            
             # Compute induced sparsity
             sparsity_vals['induced_sparsity'] = induced_sparsity.compute_average()
             induced_sparsity.reset()
@@ -267,6 +275,15 @@ def main(opt: argparse.Namespace):
             log_sparsity(writer, sparsity_vals, 'val', epoch)
         
     hook_manager.remove_hooks()
+    
+    # Save the fine-tuned model
+    last_dict = {
+        'params': model.state_dict(), 
+        'top5_accuracy': top5_accuracy, 
+        'top1_accuracy': top1_accuracy,
+        'args': vars(opt)
+    }
+    torch.save(last_dict, last)
     
 
 if __name__ == '__main__':
