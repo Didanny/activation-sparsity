@@ -33,6 +33,36 @@ class ActivationSparsity:
     
     def compute_average(self):
         return torch.mean(torch.tensor([val for key, val in self.compile().items() if key.endswith('relu')])).item()
+    
+    
+class ActivationInspector:
+    def __init__(self):
+        self.activations = {}
+    
+    def store_activations(self, name: str):
+        
+        def hook(module: nn.Module, input: torch.Tensor, output: torch.Tensor, name = name):
+            activation = output.detach()
+            activation = activation.to(device = 'cpu')
+            self._add_entry(name, activation)
+        
+        return hook
+    
+    def _add_entry(self, key: str, val: torch.Tensor):
+        if key in self.activations:
+            self.activations[key].append(val)
+        else:
+            self.activations[key] = [val]
+            
+    def reset(self):
+        for key in self.activations:
+            self.activations[key] = []
+        
+    def reinitialize(self):
+        self.activations = {}
+        
+    def compile(self):
+        return {key: torch.cat(val, dim=0) for key, val in self.activations.items()}
 
 
 class ActivationHoyerNorm(nn.Module):

@@ -136,7 +136,7 @@ def main(opt: argparse.Namespace):
     else:
         writer = SummaryWriter()
         log_dir = writer.log_dir.replace('runs', 'fine_tune_runs', 1)
-        writer = SummaryWriter(log_dir=f'{log_dir}_{opt.model}_{opt.dataset}_{opt.alpha}')
+        writer = SummaryWriter(log_dir=f'{log_dir}_{opt.model}_{opt.dataset}_{opt.alpha}_{opt.sparsity_type}')
     save_dir = Path(writer.log_dir)
     
     # Directories
