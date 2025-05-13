@@ -1,4 +1,8 @@
-from .utils import get_device, replace_gelu_with_relu
+from .utils import (
+    get_device, 
+    replace_gelu_with_relu, 
+    get_optimizer,
+)
 from .sparsity_utils import (
     ActivationHoyerNorm, 
     BlockHoyerNorm, 
@@ -6,3 +10,4 @@ from .sparsity_utils import (
     ActivationInspector,
     HooksManager,
 )
+from .lr_utils import get_lr_scheduler

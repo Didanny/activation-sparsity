@@ -6,12 +6,20 @@ import torch
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 
 from torchmetrics.classification import Accuracy
 from torchmetrics.aggregation import MeanMetric
 
-from utils import ActivationSparsity, ActivationHoyerNorm, BlockHoyerNorm, HooksManager, get_device, replace_gelu_with_relu
+from utils import (
+    ActivationSparsity, 
+    ActivationHoyerNorm, 
+    BlockHoyerNorm, 
+    HooksManager, 
+    get_device, 
+    replace_gelu_with_relu,
+    get_lr_scheduler,
+    get_optimizer,
+)
 import models
 import data
 
@@ -22,8 +30,11 @@ def parse_opt() -> argparse.Namespace:
     parser.add_argument('--model', type=str, default='cifar100_resnet20')
     parser.add_argument('--dataset', type=str, default='cifar100')
     parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--optimizer', type=str, default='sgd')
+    parser.add_argument('--lr-scheduler', type=str, default='cosine')
     parser.add_argument('--initial-lr', type=float, default=0.1)
     parser.add_argument('--final-lr', type=float, default=0.0)
+    parser.add_argument('--warmup-epochs', type=int, default=0)
     parser.add_argument('--label-smoothing', type=float, default=0.0)
     parser.add_argument('--finetune-epochs', type=int, default=30)
     parser.add_argument('--pretrained', action='store_true')
@@ -154,10 +165,11 @@ def main(opt: argparse.Namespace):
     criterion = nn.CrossEntropyLoss(label_smoothing=opt.label_smoothing)
     
     # Initialize optimizer
-    optimizer = optim.SGD([v for n, v in model.named_parameters()], opt.initial_lr, 0.9, 0, 5e-4, True)
+    optimizer = get_optimizer(model, opt)
+    optim.SGD([v for n, v in model.named_parameters()], opt.initial_lr, 0.9, 0, 5e-4, True)
     
     # Initialize scheduler
-    lr_scheduler = CosineAnnealingLR(optimizer, T_max=300, eta_min=opt.final_lr)
+    lr_scheduler = get_lr_scheduler(optimizer, opt)
     
     # Get the performance metrics
     train_meters = get_meters(device, 'train', data.num_classes[opt.dataset])
@@ -194,6 +206,9 @@ def main(opt: argparse.Namespace):
         # Update last model
         last_dict = {'params': model.state_dict(), 'top5_accuracy': top5_accuracy, 'top1_accuracy': top1_accuracy, 'epoch': epoch}
         torch.save(last_dict, last)
+        
+        # If training from scratch enabled, do nothing else
+        return
      
     # Replace GELU activations with ReLU if present, to promote sparsity
     replace_gelu_with_relu(model)
