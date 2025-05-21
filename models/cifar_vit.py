@@ -135,13 +135,14 @@ def _vit(
     
 def cifar10_vit(*args, **kwargs) -> ViT: pass
 def cifar100_vit(*args, **kwargs) -> ViT: pass
+def svhn_vit(*args, **kwargs) -> ViT: pass
 
 thismodule = sys.modules[__name__]
-for dataset in ["cifar10", "cifar100"]:
+for dataset in ["cifar10", "cifar100", "svhn"]:
     model_name = 'vit'
     method_name = f"{dataset}_{model_name}"
     model_urls = cifar10_pretrained_weight_urls if dataset == "cifar10" else cifar100_pretrained_weight_urls
-    num_classes = 10 if dataset == "cifar10" else 100
+    num_classes = 100 if dataset == "cifar100" else 10
     setattr(
         thismodule,
         method_name,

@@ -166,7 +166,6 @@ def main(opt: argparse.Namespace):
     
     # Initialize optimizer
     optimizer = get_optimizer(model, opt)
-    optim.SGD([v for n, v in model.named_parameters()], opt.initial_lr, 0.9, 0, 5e-4, True)
     
     # Initialize scheduler
     lr_scheduler = get_lr_scheduler(optimizer, opt)

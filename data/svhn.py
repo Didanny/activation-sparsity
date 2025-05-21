@@ -12,10 +12,8 @@ DATA_DIR = Path('../datasets/')
 
 def get_train_transforms(mean: Sequence[float], std: list[float]):
     return T.Compose([
-        T.RandomCrop(32, padding=4),
-        T.RandomHorizontalFlip(),
         T.ToTensor(),
-        T.Normalize(mean=mean, std=std)
+        T.Normalize(mean=mean, std=std),
     ])
 
 def get_val_transforms(mean: Sequence[float], std: list[float]):
