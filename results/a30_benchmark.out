@@ -1,0 +1,9 @@
+Benchmarking MLP operations
+dense 0.21480140686035157 ms  |  sparse 0.16512409973144532 ms | ratio 1.300848314750545
+Benchmarking MLP operations
+dense 0.18287513732910157 ms  |  sparse 0.1352939453125 ms | ratio 1.3516875193985898
+attention 0.45692108154296873 ms
+Raw Speedup
+UP speedup 1.300848314750545 | Down speedup 1.3516875193985898 | MLP speedup 1.3237438654235327
+Actual Speedup
+UP speedup 1.2389031569052809 | Down speedup 1.2873214470462757 | MLP speedup 1.2607084432605073 | Total 1.1064757287050666
