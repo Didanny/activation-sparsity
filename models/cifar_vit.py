@@ -112,11 +112,12 @@ def _vit(
     model_urls: Dict[str, str],
     progress: bool = True,
     pretrained: bool = False,
+    image_size: int = 32,
     **kwargs: Any
 ) -> ViT:
     model = ViT(
         in_c=3,
-        img_size=32,
+        img_size=image_size,
         patch=8,
         dropout=0.0,
         num_layers=7,
@@ -136,18 +137,28 @@ def _vit(
 def cifar10_vit(*args, **kwargs) -> ViT: pass
 def cifar100_vit(*args, **kwargs) -> ViT: pass
 def svhn_vit(*args, **kwargs) -> ViT: pass
+def tinyimagenet_vit(*args, **kwargs) -> ViT: pass
 
 thismodule = sys.modules[__name__]
-for dataset in ["cifar10", "cifar100", "svhn"]:
+for dataset in ["cifar10", "cifar100", "svhn", "tinyimagenet"]:
     model_name = 'vit'
     method_name = f"{dataset}_{model_name}"
     model_urls = cifar10_pretrained_weight_urls if dataset == "cifar10" else cifar100_pretrained_weight_urls
-    num_classes = 100 if dataset == "cifar100" else 10
+    if dataset == "cifar100":
+        num_classes = 100
+        image_size = 32
+    elif dataset == "tinyimagenet":
+        num_classes = 200
+        image_size = 64
+    else:
+        num_classes = 10
+        image_size = 32
     setattr(
         thismodule,
         method_name,
         partial(_vit,
                 arch=model_name,
                 model_urls=model_urls,
-                num_classes=num_classes)
+                num_classes=num_classes,
+                image_size=image_size)
     )

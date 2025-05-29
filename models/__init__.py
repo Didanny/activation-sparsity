@@ -26,3 +26,5 @@ from .cifar_vit import cifar10_vit
 from .cifar_vit import cifar100_vit
 
 from .cifar_vit import svhn_vit
+
+from .cifar_vit import tinyimagenet_vit
