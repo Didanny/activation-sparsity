@@ -10,11 +10,15 @@ from functools import partial
 from typing import Union, List, Dict, Any, cast
 
 cifar10_pretrained_weight_urls = {
-    'vit': 'https://github.com/chenyaofo/pytorch-cifar-models/releases/download/resnet/cifar10_resnet20-4118986f.pt',
+    'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/cifar10_vit.pt',
 }
 
 cifar100_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/vit_cifar100.pt',
+}
+
+tinyimagenet_pretrained_weight_urls = {
+    'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/tinyimagenet_vit.pt',
 }
 
 class TransformerEncoder(nn.Module):
@@ -143,14 +147,16 @@ thismodule = sys.modules[__name__]
 for dataset in ["cifar10", "cifar100", "svhn", "tinyimagenet"]:
     model_name = 'vit'
     method_name = f"{dataset}_{model_name}"
-    model_urls = cifar10_pretrained_weight_urls if dataset == "cifar10" else cifar100_pretrained_weight_urls
     if dataset == "cifar100":
+        model_urls = cifar100_pretrained_weight_urls
         num_classes = 100
         image_size = 32
     elif dataset == "tinyimagenet":
+        model_urls = tinyimagenet_pretrained_weight_urls
         num_classes = 200
         image_size = 64
-    else:
+    elif dataset == "cifar10":
+        model_urls = cifar10_pretrained_weight_urls
         num_classes = 10
         image_size = 32
     setattr(

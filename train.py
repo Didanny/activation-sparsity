@@ -6,6 +6,7 @@ import torch
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 from torchmetrics.classification import Accuracy
 from torchmetrics.aggregation import MeanMetric
