@@ -8,6 +8,7 @@ from .sparsity_utils import (
     BlockHoyerNorm, 
     ActivationSparsity, 
     ActivationInspector,
+    SparseActivationEnforcer,
     HooksManager,
 )
 from .lr_utils import get_lr_scheduler

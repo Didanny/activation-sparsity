@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torchmetrics.aggregation import MeanMetric
+from torch.sparse import to_sparse_semi_structured
 
 class ActivationSparsity:
     def __init__(self):
@@ -63,6 +64,27 @@ class ActivationInspector:
         
     def compile(self):
         return {key: torch.cat(val, dim=0) for key, val in self.activations.items()}
+
+
+class SparseActivationEnforcer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def enforce(self):
+        
+        def hook(module: nn.Module, input: torch.Tensor, output: torch.Tensor):
+            batch_size, seq_len, hidden_dim = output.shape
+
+            assert batch_size == 1, "Batch size must be 1 for 2:4 sparsity enforcement"
+            assert output.view(-1).size(0) % 4 == 0, "Dimension must be divisible by 4 for 2:4 sparsity."
+
+            output_half = to_sparse_semi_structured(output[:, 1:, :].squeeze(0).half()).to_dense().unsqueeze(0)
+            mask = output_half != 0
+            sparse_output = output[:, 1:, :] * mask
+            
+            return torch.cat((output[:, 0:1, :], sparse_output), dim=1)
+        
+        return hook
 
 
 class ActivationHoyerNorm(nn.Module):
@@ -162,8 +184,8 @@ class HooksManager():
     # def _register_sparsity_hooks(self, ):
     #     pass
         
-    def register_hooks(self, hook_generator: callable, layers: str = 'all'):
-        assert layers == 'all' or layers == 'post-act'
+    def register_hooks(self, hook_generator: callable, layers: str | list = 'all'):
+        assert layers == 'all' or layers == 'post-act' or type(layers) == list
         
         hooks = []
         if layers == 'all':
@@ -188,6 +210,12 @@ class HooksManager():
                     if isinstance(mod, nn.ReLU):
                         hooks.append(mod.register_forward_hook(hook_generator()))
                         
+        else:
+            for name, mod in self.model.named_modules():
+                name = self._standardize_name(name, mod)
+                if name in layers:
+                    hooks.append(mod.register_forward_hook(hook_generator()))
+        
         self.hooks.append(hooks)
                         
     def remove_hooks(self):
