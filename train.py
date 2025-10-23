@@ -156,7 +156,10 @@ def main(opt: argparse.Namespace):
     w.mkdir(parents=True, exist_ok=True)
     
     # Dataset
-    train_loader, val_loader = getattr(data, opt.dataset)()
+    if opt.model.endswith('vit_b_16'):
+        train_loader, val_loader = getattr(data, opt.dataset)(image_size=224, batch_size=64)
+    else:
+        train_loader, val_loader = getattr(data, opt.dataset)()
     
     # Model
     model = getattr(models, opt.model)(pretrained = opt.pretrained, num_classes = data.num_classes[opt.dataset])

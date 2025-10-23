@@ -2,6 +2,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision.models import VisionTransformer, vit_b_16, ViT_B_16_Weights
 try:
     from torch.hub import load_state_dict_from_url
 except ImportError:
@@ -11,14 +12,17 @@ from typing import Union, List, Dict, Any, cast
 
 cifar10_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/cifar10_vit.pt',
+    'vit_b_16': None,
 }
 
 cifar100_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/vit_cifar100.pt',
+    'vit_b_16': None,
 }
 
 tinyimagenet_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/tinyimagenet_vit.pt',
+    'vit_b_16': None,
 }
 
 class TransformerEncoder(nn.Module):
@@ -137,11 +141,36 @@ def _vit(
         model.load_state_dict(checkpoint['params'])
     return model
 
+def _vit_b_16(
+    arch: str,
+    model_urls: Dict[str, str],
+    progress: bool = True,
+    pretrained: bool = False,
+    num_classes: int = 1000,
+    **kwargs: Any
+) -> VisionTransformer:
+    weights = ViT_B_16_Weights.DEFAULT
+    model = vit_b_16(weights=weights, **kwargs)
+    if num_classes != 1000:
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_classes)
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls[arch],
+                                              progress=progress,
+                                              map_location='cpu')
+        model.load_state_dict(checkpoint['params'])
+    return model
     
 def cifar10_vit(*args, **kwargs) -> ViT: pass
+def cifar10_vit_b_16(*args, **kwargs) -> VisionTransformer: pass
+
 def cifar100_vit(*args, **kwargs) -> ViT: pass
+def cifar100_vit_b_16(*args, **kwargs) -> VisionTransformer: pass
+
 def svhn_vit(*args, **kwargs) -> ViT: pass
+def svhn_vit_b_16(*args, **kwargs) -> VisionTransformer: pass
+
 def tinyimagenet_vit(*args, **kwargs) -> ViT: pass
+def tinyimagenet_vit_b_16(*args, **kwargs) -> VisionTransformer: pass
 
 thismodule = sys.modules[__name__]
 for dataset in ["cifar10", "cifar100", "svhn", "tinyimagenet"]:
@@ -167,4 +196,26 @@ for dataset in ["cifar10", "cifar100", "svhn", "tinyimagenet"]:
                 model_urls=model_urls,
                 num_classes=num_classes,
                 image_size=image_size)
+    )
+    
+thismodule = sys.modules[__name__]
+for dataset in ["cifar10", "cifar100", "svhn", "tinyimagenet"]:
+    model_name = 'vit_b_16'
+    method_name = f"{dataset}_{model_name}"
+    if dataset == "cifar100":
+        model_urls = cifar100_pretrained_weight_urls
+        num_classes = 100
+    elif dataset == "tinyimagenet":
+        model_urls = tinyimagenet_pretrained_weight_urls
+        num_classes = 200
+    elif dataset == "cifar10":
+        model_urls = cifar10_pretrained_weight_urls
+        num_classes = 10
+    setattr(
+        thismodule,
+        method_name,
+        partial(_vit_b_16,
+                arch=model_name,
+                model_urls=model_urls,
+                num_classes=num_classes)
     )

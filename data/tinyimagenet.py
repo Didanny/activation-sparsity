@@ -9,26 +9,32 @@ from datasets import load_dataset
 from PIL import Image
 
 def get_tinyimagenet_train_transforms(
-    mean: Sequence[float], std: Sequence[float]
+    mean: Sequence[float], 
+    std: Sequence[float], 
+    image_size: int = 64,
 ):
-    return T.Compose([
-        T.RandomResizedCrop(64, scale=(0.5, 1.0)),
+    transforms = [
+        T.RandomResizedCrop(image_size, scale=(0.5, 1.0)),
         T.ColorJitter(0.4, 0.4, 0.4, 0.1),
         T.RandomHorizontalFlip(),
         T.RandomGrayscale(p=0.2),
         T.ToTensor(),
         T.Normalize(mean=mean, std=std),
-    ])
+    ]
+    return T.Compose(transforms)
 
 def get_tinyimagenet_val_transforms(
-    mean: Sequence[float], std: Sequence[float]
+    mean: Sequence[float], 
+    std: Sequence[float], 
+    image_size: int = 64,
 ):
-    return T.Compose([
-        T.Resize(64),
-        T.CenterCrop(64),
+    transforms = [
+        T.Resize(image_size),
+        T.CenterCrop(image_size),
         T.ToTensor(),
         T.Normalize(mean=mean, std=std),
-    ])
+    ]
+    return T.Compose(transforms)
 
 class HFDatasetWrapper(Dataset):
     """
@@ -54,6 +60,7 @@ def tinyimagenet_hf(
     batch_size: Optional[int] = 256,
     num_workers: int = 2,
     dataset_name: str = "zh-plus/tiny-imagenet",
+    image_size: int = 64,
 ) -> tuple[DataLoader, DataLoader]:
     """
     Downloads Tiny-ImageNet via HF `datasets`, wraps it in a
@@ -65,8 +72,8 @@ def tinyimagenet_hf(
     # 2) Build transforms
     mean = [0.485, 0.456, 0.406]
     std  = [0.229, 0.224, 0.225]
-    train_tf = get_tinyimagenet_train_transforms(mean, std)
-    val_tf   = get_tinyimagenet_val_transforms(mean, std)
+    train_tf = get_tinyimagenet_train_transforms(mean, std, image_size)
+    val_tf   = get_tinyimagenet_val_transforms(mean, std, image_size)
 
     # 3) Wrap in our torch Dataset
     train_ds = HFDatasetWrapper(ds["train"], transform=train_tf)

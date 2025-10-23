@@ -22,9 +22,13 @@ from .cifar_vgg import cifar100_vgg16_bn
 from .cifar_vgg import cifar100_vgg19_bn
 
 from .cifar_vit import cifar10_vit
+from .cifar_vit import cifar10_vit_b_16
 
 from .cifar_vit import cifar100_vit
+from .cifar_vit import cifar100_vit_b_16
 
 from .cifar_vit import svhn_vit
+from .cifar_vit import svhn_vit_b_16
 
 from .cifar_vit import tinyimagenet_vit
+from .cifar_vit import tinyimagenet_vit_b_16
