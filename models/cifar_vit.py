@@ -7,22 +7,33 @@ try:
     from torch.hub import load_state_dict_from_url
 except ImportError:
     from torch.utils.model_zoo import load_url as load_state_dict_from_url
+import timm
+from urllib.request import urlopen
+from PIL import Image
 from functools import partial
 from typing import Union, List, Dict, Any, cast
 
 cifar10_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/cifar10_vit.pt',
     'vit_b_16': None,
+    'vit_t_16': None,
 }
 
 cifar100_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/vit_cifar100.pt',
     'vit_b_16': None,
+    'vit_t_16': None,
 }
 
 tinyimagenet_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/tinyimagenet_vit.pt',
     'vit_b_16': None,
+    'vit_t_16': None,
+}
+
+name_to_timm = {
+    'vit_t_16': 'vit_tiny_patch16_224.augreg_in21k_ft_in1k',
+    'vit_s_16': 'vit_small_patch16_224.augreg_in21k_ft_in1k',
 }
 
 class TransformerEncoder(nn.Module):
@@ -159,18 +170,45 @@ def _vit_b_16(
                                               map_location='cpu')
         model.load_state_dict(checkpoint['params'])
     return model
+
+def _vit_timm(
+    model_name: str,
+    arch: str,
+    model_urls: Dict[str, str],
+    progress: bool = True,
+    pretrained: bool = False,
+    num_classes: int = 1000,
+    **kwargs: Any
+) -> VisionTransformer:
+    model = timm.create_model(name_to_timm[model_name], pretrained=True)
+    if num_classes != 1000:
+        model.head = nn.Linear(model.head.in_features, num_classes)
+    if pretrained:
+        checkpoint = load_state_dict_from_url(model_urls[arch],
+                                              progress=progress,
+                                              map_location='cpu')
+        model.load_state_dict(checkpoint['params'])
+    return model
     
 def cifar10_vit(*args, **kwargs) -> ViT: pass
 def cifar10_vit_b_16(*args, **kwargs) -> VisionTransformer: pass
+def cifar10_vit_t_16(*args, **kwargs) -> VisionTransformer: pass
+def cifar10_vit_s_16(*args, **kwargs) -> VisionTransformer: pass
 
 def cifar100_vit(*args, **kwargs) -> ViT: pass
 def cifar100_vit_b_16(*args, **kwargs) -> VisionTransformer: pass
+def cifar100_vit_t_16(*args, **kwargs) -> VisionTransformer: pass
+def cifar100_vit_s_16(*args, **kwargs) -> VisionTransformer: pass
 
 def svhn_vit(*args, **kwargs) -> ViT: pass
 def svhn_vit_b_16(*args, **kwargs) -> VisionTransformer: pass
+def svhn_vit_t_16(*args, **kwargs) -> VisionTransformer: pass
+def svhn_vit_s_16(*args, **kwargs) -> VisionTransformer: pass
 
 def tinyimagenet_vit(*args, **kwargs) -> ViT: pass
 def tinyimagenet_vit_b_16(*args, **kwargs) -> VisionTransformer: pass
+def tinyimagenet_vit_t_16(*args, **kwargs) -> VisionTransformer: pass
+def tinyimagenet_vit_s_16(*args, **kwargs) -> VisionTransformer: pass
 
 thismodule = sys.modules[__name__]
 for dataset in ["cifar10", "cifar100", "svhn", "tinyimagenet"]:
@@ -219,3 +257,27 @@ for dataset in ["cifar10", "cifar100", "svhn", "tinyimagenet"]:
                 model_urls=model_urls,
                 num_classes=num_classes)
     )
+    
+thismodule = sys.modules[__name__]
+for model_name in ["vit_t_16", "vit_s_16"]:
+    for dataset in ["cifar10", "cifar100", "svhn", "tinyimagenet"]:
+        method_name = f"{dataset}_{model_name}"
+        if dataset == "cifar100":
+            model_urls = cifar100_pretrained_weight_urls
+            num_classes = 100
+        elif dataset == "tinyimagenet":
+            model_urls = tinyimagenet_pretrained_weight_urls
+            num_classes = 200
+        elif dataset == "cifar10":
+            model_urls = cifar10_pretrained_weight_urls
+            num_classes = 10
+        setattr(
+            thismodule,
+            method_name,
+            partial(_vit_timm,
+                    model_name=model_name,
+                    arch=model_name,
+                    model_urls=model_urls,
+                    num_classes=num_classes)
+        )
+    

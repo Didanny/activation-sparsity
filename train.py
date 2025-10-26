@@ -158,6 +158,8 @@ def main(opt: argparse.Namespace):
     # Dataset
     if opt.model.endswith('vit_b_16'):
         train_loader, val_loader = getattr(data, opt.dataset)(image_size=224, batch_size=64)
+    elif opt.model.endswith('_16'):
+        train_loader, val_loader = getattr(data, opt.dataset)(image_size=224, batch_size=128)
     else:
         train_loader, val_loader = getattr(data, opt.dataset)()
     

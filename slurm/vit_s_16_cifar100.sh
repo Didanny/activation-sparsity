@@ -1,0 +1,8 @@
+#!/bin/sh 
+#SBATCH -p opengpu.p
+#SBATCH --gres=gpu:1 
+#SBATCH -o slurm_logs/log_cifar100_vit_s_16.out 
+#SBATCH -e slurm_logs/err_cifar100_vit_s_16.out
+
+# python train.py --model cifar100_vit_s_16 --dataset cifar100 --optimizer adam --initial-lr 1e-3 --label-smoothing 0.1 --epochs 100
+python train.py --model cifar100_vit_s_16 --dataset cifar100 --optimizer sgd --initial-lr 1e-3 --label-smoothing 0.1 --epochs 100
