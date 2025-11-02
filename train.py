@@ -1,5 +1,7 @@
 import argparse
+from datetime import datetime
 from pathlib import Path
+import socket
 from tqdm import tqdm
 
 import torch
@@ -46,6 +48,12 @@ def parse_opt() -> argparse.Namespace:
     opt = parser.parse_args()
     print(vars(opt))
     return opt
+
+def make_log_dir(base="runs/slimmable_runs", dataset="cifar100", model="usresnet32"):
+    timestamp = datetime.now().strftime("%b%d_%H-%M-%S")  
+    hostname = socket.gethostname()                       
+    log_dir = f"{base}/{dataset}/{timestamp}_{hostname}_{model}"
+    return log_dir
 
 def get_meters(device: torch.device, phase: str, num_classes: int):
     """util function for meters"""
@@ -144,11 +152,9 @@ def main(opt: argparse.Namespace):
     # Set up tensorboard summary writer
     # TODO: Create more comprehensive automated commenting
     if not opt.fine_tune:
-        writer = SummaryWriter(comment=f'_{opt.model}_{opt.dataset}')
+        writer = SummaryWriter(log_dir=make_log_dir(base='runs/train', dataset=opt.dataset, model=opt.model))
     else:
-        writer = SummaryWriter()
-        log_dir = writer.log_dir.replace('runs', 'fine_tune_runs', 1)
-        writer = SummaryWriter(log_dir=f'{log_dir}_{opt.model}_{opt.dataset}_{opt.alpha}_{opt.sparsity_type}')
+        writer = SummaryWriter(log_dir=make_log_dir(base=f'runs/fine_tune/{opt.sparsity_type}', dataset=opt.dataset, model=opt.model))
     save_dir = Path(writer.log_dir)
     
     # Directories

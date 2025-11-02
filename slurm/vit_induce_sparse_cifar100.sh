@@ -10,6 +10,6 @@
 for alpha in 5e-8 1e-7 5e-7 1e-6 5e-6 1e-5; do
     python train.py --model cifar100_vit --dataset cifar100 --pretrained --fine-tune --alpha "$alpha"
 done
-for alpha in 5e-8 1e-7 5e-7 1e-6 5e-6 1e-5; do
-    python train.py --model cifar100_vit --dataset cifar100 --pretrained --fine-tune --sparse-lr 0.0025 --alpha "$alpha"
-done
+# for alpha in 5e-8 1e-7 5e-7 1e-6 5e-6 1e-5; do
+#     python train.py --model cifar100_vit --dataset cifar100 --pretrained --fine-tune --sparse-lr 0.0025 --alpha "$alpha"
+# done
