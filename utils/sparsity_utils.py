@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torchmetrics.aggregation import MeanMetric
 from torch.sparse import to_sparse_semi_structured
+import torch.nn.functional as F
 
 class ActivationSparsity:
     def __init__(self):
@@ -10,6 +11,8 @@ class ActivationSparsity:
     def calculate_sparsity(self, name: str):
         
         def hook(module: nn.Module, input: torch.Tensor, output: torch.Tensor, name = name):
+            if type(output) == tuple:
+                output = output[0]
             mean_sparsity = (output.detach() == 0).float().mean().item()
             self._add_entry(name, mean_sparsity)
         
@@ -78,11 +81,13 @@ class SparseActivationEnforcer(nn.Module):
             assert batch_size == 1, "Batch size must be 1 for 2:4 sparsity enforcement"
             assert output.view(-1).size(0) % 4 == 0, "Dimension must be divisible by 4 for 2:4 sparsity."
 
-            output_half = to_sparse_semi_structured(output[:, 1:, :].squeeze(0).half()).to_dense().unsqueeze(0)
+            # return None
+            output_half = to_sparse_semi_structured(F.pad(output[:, :, :].squeeze(0).half(), (0, 0, 0, 11))).to_dense().unsqueeze(0)
             mask = output_half != 0
-            sparse_output = output[:, 1:, :] * mask
+            sparse_output = output[:, :, :] * mask[:, :-11, :]
             
-            return torch.cat((output[:, 0:1, :], sparse_output), dim=1)
+            return sparse_output
+            return torch.cat((output[:, :, :], sparse_output), dim=1)
         
         return hook
 

@@ -27,37 +27,62 @@ import data
 
 from torch.utils.tensorboard import SummaryWriter
 
+# checkpoints = {
+#     'cifar10_hoyer': 'fine_tune_runs/May29_08-57-52_korn.ics.uci.edu_cifar10_vit_cifar10_1e-05_unstructured/weights/last.pt',
+#     'cifar10_block_hoyer': 'fine_tune_runs/May29_03-45-52_korn.ics.uci.edu_cifar10_vit_cifar10_0.05_semi-structured/weights/last.pt',
+#     'cifar100_hoyer': 'fine_tune_runs/May02_18-38-11_korn.ics.uci.edu_cifar100_vit_cifar100_5e-06/weights/last.pt',
+#     'cifar100_block_hoyer': 'fine_tune_runs/May04_03-08-28_korn.ics.uci.edu_cifar100_vit_cifar100_0.1_semi-structured/weights/last.pt',
+#     'tinyimagenet_hoyer': 'fine_tune_runs/May30_01-28-32_korn.ics.uci.edu_tinyimagenet_vit_tinyimagenet_5e-06_unstructured/weights/last.pt',
+#     'tinyimagenet_block_hoyer': '/home/dannya1/activation-sparsity/fine_tune_runs/May29_17-24-00_korn.ics.uci.edu_tinyimagenet_vit_tinyimagenet_0.1_semi-structured/weights/last.pt',
+# }
+
 checkpoints = {
-    'cifar10_hoyer': 'fine_tune_runs/May29_08-57-52_korn.ics.uci.edu_cifar10_vit_cifar10_1e-05_unstructured/weights/last.pt',
-    'cifar10_block_hoyer': 'fine_tune_runs/May29_03-45-52_korn.ics.uci.edu_cifar10_vit_cifar10_0.05_semi-structured/weights/last.pt',
-    'cifar100_hoyer': 'fine_tune_runs/May02_18-38-11_korn.ics.uci.edu_cifar100_vit_cifar100_5e-06/weights/last.pt',
-    'cifar100_block_hoyer': 'fine_tune_runs/May04_03-08-28_korn.ics.uci.edu_cifar100_vit_cifar100_0.1_semi-structured/weights/last.pt',
-    'tinyimagenet_hoyer': 'fine_tune_runs/May30_01-28-32_korn.ics.uci.edu_tinyimagenet_vit_tinyimagenet_5e-06_unstructured/weights/last.pt',
-    'tinyimagenet_block_hoyer': '/home/dannya1/activation-sparsity/fine_tune_runs/May29_17-24-00_korn.ics.uci.edu_tinyimagenet_vit_tinyimagenet_0.1_semi-structured/weights/last.pt',
+    # 'cifar10_hoyer': 'fine_tune_runs/May29_08-57-52_korn.ics.uci.edu_cifar10_vit_cifar10_1e-05_unstructured/weights/last.pt',
+    # 'cifar10_block_hoyer': 'fine_tune_runs/May29_03-45-52_korn.ics.uci.edu_cifar10_vit_cifar10_0.05_semi-structured/weights/last.pt',
+    'cifar100_hoyer': 'runs/fine_tune/unstructured/cifar100/Oct28_05-00-54_korn.ics.uci.edu_cifar100_vit_s_16/weights/last.pt',
+    # 'cifar100_hoyer': 'runs/fine_tune/unstructured/cifar100/Oct28_03-16-26_korn.ics.uci.edu_cifar100_vit_t_16/weights/last.pt',
+    'cifar100_block_hoyer': 'runs/fine_tune/semi-structured/cifar100/Oct30_01-47-40_korn.ics.uci.edu_cifar100_vit_s_16/weights/last.pt',
+    # 'tinyimagenet_hoyer': 'fine_tune_runs/May30_01-28-32_korn.ics.uci.edu_tinyimagenet_vit_tinyimagenet_5e-06_unstructured/weights/last.pt',
+    # 'tinyimagenet_block_hoyer': '/home/dannya1/activation-sparsity/fine_tune_runs/May29_17-24-00_korn.ics.uci.edu_tinyimagenet_vit_tinyimagenet_0.1_semi-structured/weights/last.pt',
 }
 
+# layers = [
+#     'enc.2.mlp.4_relu',
+#     'enc.3.mlp.1_relu',
+#     'enc.4.mlp.1_relu',
+#     'enc.5.mlp.1_relu',
+#     'enc.4.mlp.4_relu',
+#     'enc.2.mlp.1_relu',
+#     'enc.3.mlp.4_relu',
+#     'enc.5.mlp.4_relu',
+#     'enc.6.mlp.4_relu',
+#     'enc.1.mlp.1_relu',
+#     'enc.6.mlp.1_relu',
+#     'enc.0.mlp.4_relu',
+#     'enc.0.mlp.1_relu',
+#     'enc.1.mlp.4_relu',
+# ]
+
 layers = [
-    'enc.2.mlp.4_relu',
-    'enc.3.mlp.1_relu',
-    'enc.4.mlp.1_relu',
-    'enc.5.mlp.1_relu',
-    'enc.4.mlp.4_relu',
-    'enc.2.mlp.1_relu',
-    'enc.3.mlp.4_relu',
-    'enc.5.mlp.4_relu',
-    'enc.6.mlp.4_relu',
-    'enc.1.mlp.1_relu',
-    'enc.6.mlp.1_relu',
-    'enc.0.mlp.4_relu',
-    'enc.0.mlp.1_relu',
-    'enc.1.mlp.4_relu',
+    'blocks.10.mlp.act_relu',
+    'blocks.9.mlp.act_relu',
+    'blocks.11.mlp.act_relu',
+    'blocks.8.mlp.act_relu',
+    'blocks.7.mlp.act_relu',
+    'blocks.2.mlp.act_relu',
+    'blocks.3.mlp.act_relu',
+    'blocks.1.mlp.act_relu',
+    'blocks.0.mlp.act_relu',
+    'blocks.5.mlp.act_relu',
+    'blocks.4.mlp.act_relu',
+    'blocks.6.mlp.act_relu',
 ]
 
 def parse_opt() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='cifar10_vit')
-    parser.add_argument('--dataset', type=str, default='cifar10')
-    parser.add_argument('--checkpoint', type=str, default='cifar10_hoyer')
+    parser.add_argument('--model', type=str, default='cifar100_vit_s_16')
+    parser.add_argument('--dataset', type=str, default='cifar100')
+    parser.add_argument('--checkpoint', type=str, default='cifar100_hoyer')
     opt = parser.parse_args()
     print(vars(opt))
     return opt
@@ -104,7 +129,7 @@ def main(opt: argparse.Namespace):
     device = get_device()
     
     # Dataset
-    train_loader, val_loader = getattr(data, opt.dataset)(batch_size = 1)
+    train_loader, val_loader = getattr(data, opt.dataset)(image_size=224, batch_size=1)
     
     # Model
     model = getattr(models, opt.model)(num_classes = data.num_classes[opt.dataset])
@@ -133,7 +158,7 @@ def main(opt: argparse.Namespace):
     
     # Final evaluation
     evaluate(model, criterion, val_loader, device, 0, post_enforce_meters)
-    print(f'Pre-enforcement accuracy: {post_enforce_meters["top1_accuracy"].compute()}')
+    print(f'Post-enforcement accuracy: {post_enforce_meters["top1_accuracy"].compute()}')
     
 
 if __name__ == '__main__':

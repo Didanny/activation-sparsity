@@ -1,23 +1,25 @@
 import torch
 import torch.nn as nn
 
-from models import cifar100_vit
+from models import cifar100_vit_s_16
 from data import cifar100
 from utils import ActivationSparsity, ActivationInspector, HooksManager, get_device, replace_gelu_with_relu
 from train import evaluate
 
-dense_model = cifar100_vit(pretrained=False)
+dense_model = cifar100_vit_s_16(pretrained=False)
 replace_gelu_with_relu(dense_model)
 
-checkpoint_path = './fine_tune_runs/May02_18-38-11_korn.ics.uci.edu_cifar100_vit_cifar100_5e-06/weights/last.pt'
+# checkpoint_path = './fine_tune_runs/May02_18-38-11_korn.ics.uci.edu_cifar100_vit_cifar100_5e-06/weights/last.pt'
+checkpoint_path = './runs/fine_tune/unstructured/cifar100/Oct28_05-00-54_korn.ics.uci.edu_cifar100_vit_s_16/weights/last.pt'
 unstructured_checkpoint = torch.load(checkpoint_path, map_location='cpu')
-unstructured_model = cifar100_vit(pretrained=False)
+unstructured_model = cifar100_vit_s_16(pretrained=False)
 unstructured_model.load_state_dict(unstructured_checkpoint['params'])
 replace_gelu_with_relu(unstructured_model)
 
-checkpoint_path = './fine_tune_runs/May04_03-08-28_korn.ics.uci.edu_cifar100_vit_cifar100_0.1_semi-structured/weights/last.pt'
+# checkpoint_path = './fine_tune_runs/May04_03-08-28_korn.ics.uci.edu_cifar100_vit_cifar100_0.1_semi-structured/weights/last.pt'
+checkpoint_path = './runs/fine_tune/semi-structured/cifar100/Oct30_01-47-40_korn.ics.uci.edu_cifar100_vit_s_16/weights/last.pt'
 semi_checkpoint = torch.load(checkpoint_path, map_location='cpu')
-semi_model = cifar100_vit(pretrained=False)
+semi_model = cifar100_vit_s_16(pretrained=False)
 semi_model.load_state_dict(semi_checkpoint['params'])
 replace_gelu_with_relu(semi_model)
 
@@ -32,7 +34,8 @@ semi_sparsity = ActivationSparsity()
 # unstructured_activations = ActivationInspector()
 # semi_activations = ActivationInspector()
 
-train_loader, val_loader = cifar100()
+# train_loader, val_loader = cifar100()
+train_loader, val_loader = cifar100(image_size=224, batch_size=128)
 
 dense_hooks.register_hooks(dense_sparsity.calculate_sparsity)
 unstructured_hooks.register_hooks(unstructured_sparsity.calculate_sparsity)

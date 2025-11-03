@@ -15,21 +15,21 @@ from typing import Union, List, Dict, Any, cast
 
 cifar10_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/cifar10_vit.pt',
-    'vit_b_16': None,
+    'vit_b_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_b_16/cifar10_vit_b_16.pt',
     'vit_t_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_t_16/cifar10_vit_t_16.pt',
     'vit_s_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_s_16/cifar10_vit_s_16.pt',
 }
 
 cifar100_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/vit_cifar100.pt',
-    'vit_b_16': None,
+    'vit_b_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_b_16/cifar100_vit_b_16.pt',
     'vit_t_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_t_16/cifar100_vit_t_16.pt',
     'vit_s_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_s_16/cifar100_vit_s_16.pt',
 }
 
 tinyimagenet_pretrained_weight_urls = {
     'vit': 'https://github.com/Didanny/activation-sparsity/releases/download/vit/tinyimagenet_vit.pt',
-    'vit_b_16': None,
+    'vit_b_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_b_16/tinyimagenet_vit_b_16.pt',
     'vit_t_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_t_16/tinyimagenet_vit_t_16.pt',
     'vit_s_16': 'https://github.com/Didanny/activation-sparsity/releases/download/vit_s_16/tinyimagenet_vit_s_16.pt',
 }
